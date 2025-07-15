@@ -211,306 +211,230 @@ namespace MultiTypeTable
 		}
 	}
 
-	public class DateItem : MultiTypeTableItem
-	{
-		private readonly string _format;
-		private readonly DateTime _defDate;
-        private MaskedTextBox maskedTextBox;
-        private Button dropDownButton;
-        private MonthCalendar calendar;
-        private Form popupForm;
-        private DateTime _value = DateTime.Now;
 
-        // Цветовая схема
-        private readonly Color _backColor = Color.FromArgb(38, 38, 46);
-        private readonly Color _foreColor = Color.FromArgb(230, 230, 230);
-        private readonly Color _buttonBackColor = Color.FromArgb(55, 55, 65);
-        private readonly Color _hoverColor = Color.FromArgb(65, 65, 75);
-
+    public class DateItem : MultiTypeTableItem
+    {
+        private readonly string _format;
+        private readonly DateTime _defDate;
 
         public DateTime Value { get; private set; }
-		public string StringValue { get; set; }
+        public string StringValue { get; set; }
 
-		public DateItem(string name, string alias, string type, string format) : this(name, alias, type, format, DateTime.Now)
-		{
-		}
+        public DateItem(string name, string alias, string type, string format)
+            : this(name, alias, type, format, DateTime.Now)
+        {
+        }
 
-		public DateItem(string name, string alias, string type, string format, DateTime defDate) : base(name, alias, type)
-		{
-			_format = format;
-			_defDate = defDate;
-			Value = defDate;
+        public DateItem(string name, string alias, string type, string format, DateTime defDate)
+            : base(name, alias, type)
+        {
+            _format = format;
+            _defDate = defDate;
+            Value = defDate;
+            StringValue = defDate.ToString(format);
+        }
 
-			var formatForDefValues = "{0:" + format + "}";
+        internal override Control CreateControlImpl()
+        {
+            var impl = new MyDateTimePicker
+            {
+                DateFormat = "dd.MM.yyyy",
+               // MinDate = new DateTime(2000, 1, 1),
+              //  MaxDate = new DateTime(2100, 1, 1),
+                Value = Value,
+                Anchor = Anchoring,
+                Font = new Font("Funnel Sans", 10),
+                BackColor = Color.FromArgb(38, 38, 46),
+                ForeColor = Color.FromArgb(230, 230, 230)
+            };
 
-			StringValue = String.Format(CultureInfo.InvariantCulture, formatForDefValues, defDate);
+            impl.ValueChanged += (sender, args) =>
+            {
+                Value = impl.Value;
+                StringValue = Value.ToString(_format);
+            };
 
-		}
+            return impl;
+        }
 
-		internal override Control CreateControlImpl()
-		{
-			var impl = new MyDateTimePicker
-			{
-				// Format = DateTimePickerFormat.Custom,
-				//CustomFormat = _format,
-				////Value = _defDate,
+        public class MyDateTimePicker : UserControl
+        {
+            private MaskedTextBox maskedTextBox;
+            private Button dropDownButton;
+            private MonthCalendar calendar;
+            private Form popupForm;
+            private DateTime _value = DateTime.Now;
 
-				BackColor = Color.LightYellow,
-				ForeColor = Color.DarkBlue,
-				//Font = new Font("Segoe UI", 10, FontStyle.Bold),
-				DateFormat = "dd.MM.yyyy",
-				MinDate = new DateTime(2000, 1, 1),
-				MaxDate = new DateTime(2100, 1, 1),
-				Value = DateTime.Now,
-				Anchor = Anchoring,
-				Font = new Font("Funnel Sans", 10)
+            // Цветовая схема
+            private readonly Color _backColor = Color.FromArgb(38, 38, 46);
+            private readonly Color _foreColor = Color.FromArgb(230, 230, 230);
+            private readonly Color _buttonBackColor = Color.FromArgb(55, 55, 65);
 
+            public DateTime Value
+            {
+                get => _value;
+                set
+                {
+                    _value = value;
+                    UpdateText();
+                    OnValueChanged(EventArgs.Empty);
+                }
+            }
 
-		};
+            public string DateFormat { get; set; } = "dd.MM.yyyy";
+            public event EventHandler ValueChanged;
 
-			impl.ValueChanged += (sender, args) =>
-			{
-				Value = impl.Value;
-				StringValue = impl.Text;
-				impl.Font = impl.Font;
-			};
+            public MyDateTimePicker()
+            {
+                InitializeComponent();
+                UpdateText();
+            }
 
+            private void InitializeComponent()
+            {
+                // Основные настройки
+                this.SuspendLayout();
+                this.Height = 28;
+                this.BackColor = _backColor;
+                this.Padding = new Padding(0);
+                this.Margin = new Padding(0);
 
-			impl.BackColor = Color.FromArgb(38, 38, 46);       // Тёмный фон
-			impl.ForeColor = Color.FromArgb(230, 230, 230);
-			return impl;
+                // Поле ввода
+                maskedTextBox = new MaskedTextBox
+                {
+                    Dock = DockStyle.Fill,
+                    Mask = "00/00/0000",
+                    BorderStyle = BorderStyle.None,
+                    BackColor = _backColor,
+                    ForeColor = _foreColor,
+                    Font = new Font("Segoe UI", 9.5f),
+                    Margin = new Padding(0)
+                };
 
-		}
+                // Кнопка календаря (полностью статичная)
+                dropDownButton = new Button
+                {
+                    Dock = DockStyle.Right,
+                    Width = 30,
+                    Text = "📅",
+                    FlatStyle = FlatStyle.Flat,
+                    BackColor = _buttonBackColor,
+                    ForeColor = _foreColor,
+                    Font = new Font("Segoe UI", 14),
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    Margin = new Padding(0),
+                    Padding = new Padding(0),
+                    TabStop = false // Отключаем реакцию на Tab
+                };
 
+                // Полное отключение всех визуальных эффектов
+                dropDownButton.FlatAppearance.BorderSize = 0;
+             //  dropDownButton.SetStyle(ControlStyles.Selectable, false);
 
-public class MyDateTimePicker : UserControl
-	{
-			private MaskedTextBox maskedTextBox;
-			private Button dropDownButton;
-			private MonthCalendar calendar;
-			private Form popupForm;
+                // Размещение элементов
+                var container = new Panel
+                {
+                    Dock = DockStyle.Fill,
+                    BackColor = _backColor,
+                    Padding = new Padding(0)
+                };
 
-			private DateTime _value = DateTime.Now;
-			private DateTime _minDate = DateTimePicker.MinimumDateTime;
-			private DateTime _maxDate = DateTimePicker.MaximumDateTime;
+                container.Controls.Add(maskedTextBox);
+                container.Controls.Add(dropDownButton);
+                this.Controls.Add(container);
 
-			// ✅ Свойства
+                // Обработчики событий (только клик)
+                dropDownButton.Click += ShowCalendarPopup;
+                maskedTextBox.Leave += (s, e) => ApplyTextToValue();
+                maskedTextBox.KeyDown += (s, e) =>
+                {
+                    if (e.KeyCode == Keys.Enter) ApplyTextToValue();
+                };
 
-			 
-			public DateTime Value
-			{
-				get => _value;
-				set
-				{
-					if (value < MinDate) _value = MinDate;
-					else if (value > MaxDate) _value = MaxDate;
-					else _value = value;
+                // Отключаем все реакции на фокус
+                this.SetStyle(ControlStyles.Selectable, false);
+                maskedTextBox.GotFocus += (s, e) => maskedTextBox.BackColor = _backColor;
+                maskedTextBox.LostFocus += (s, e) => maskedTextBox.BackColor = _backColor;
 
-					UpdateText();
-					OnValueChanged(EventArgs.Empty);
-				}
-			}
+                this.ResumeLayout(false);
+            }
 
-		 
-			public DateTime MinDate
-			{
-				get => _minDate;
-				set => _minDate = value;
-			}
+            private void ShowCalendarPopup(object sender, EventArgs e)
+            {
+                if (calendar != null) return;
 
-		 
-			public DateTime MaxDate
-			{
-				get => _maxDate;
-				set => _maxDate = value;
-			}
+                calendar = new MonthCalendar
+                {
+                    SelectionStart = Value,
+                    BackColor = _backColor,
+                    ForeColor = _foreColor,
+                    TitleBackColor = _buttonBackColor,
+                    TitleForeColor = _foreColor
+                };
 
-			 
-			public string DateFormat { get; set; } = "dd/MM/yyyy";
+                popupForm = new Form
+                {
+                    FormBorderStyle = FormBorderStyle.None,
+                    ShowInTaskbar = false,
+                    StartPosition = FormStartPosition.Manual,
+                    Size = calendar.Size,
+                    BackColor = _backColor
+                };
 
-		 
-			public string InputMask { get; set; } = "00/00/0000";
+                popupForm.Deactivate += (s, args) => ClosePopup();
+                popupForm.Controls.Add(calendar);
+                popupForm.Location = PointToScreen(new Point(0, Height));
 
-			// ✅ Цвета и шрифт
-			public override Color BackColor
-			{
-				get => maskedTextBox.BackColor;
-				set
-				{
-					maskedTextBox.BackColor = value;
-					base.BackColor = value;
-				}
-			}
+                calendar.DateSelected += (s, args) =>
+                {
+                    Value = args.Start;
+                    ClosePopup();
+                };
 
-			public override Color ForeColor
-			{
-				get => maskedTextBox.ForeColor;
-				set
-				{
-					maskedTextBox.ForeColor = value;
-					base.ForeColor = value;
-				}
-			}
+                popupForm.Show(this);
+            }
 
-			public override Font Font
-			{
-				get => base.Font;
-				set
-				{
-					base.Font = value;
-					maskedTextBox.Font = value;
-					dropDownButton.Font = value;
-				}
-			}
+            private void ClosePopup()
+            {
+                popupForm?.Close();
+                popupForm = null;
+                calendar = null;
+            }
 
-			// ✅ Событие ValueChanged
-		 
-			public event EventHandler ValueChanged;
+            private void ApplyTextToValue()
+            {
+                if (DateTime.TryParseExact(maskedTextBox.Text, DateFormat,
+                    CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime dt))
+                {
+                    Value = dt;
+                }
+                else
+                {
+                    UpdateText();
+                }
+            }
 
-			public MyDateTimePicker()
-			{
-				this.Height = 24;
+            private void UpdateText() => maskedTextBox.Text = Value.ToString(DateFormat);
 
-				maskedTextBox = new MaskedTextBox
-				{
-					Dock = DockStyle.Fill,
-					Mask = InputMask,
-					BorderStyle = BorderStyle.None,
-					TextAlign = HorizontalAlignment.Left,
-					PromptChar = '_',
-					Text = DateTime.Now.ToString("dd/MM/yyyy")
-				};
+            protected virtual void OnValueChanged(EventArgs e) => ValueChanged?.Invoke(this, e);
 
-				dropDownButton = new Button
-				{
-					Dock = DockStyle.Right,
-					Width = 24,
-					Text = "▼",
-					FlatStyle = FlatStyle.Flat
-				};
-				dropDownButton.FlatAppearance.BorderSize = 0;
-				dropDownButton.BackColor = Color.Transparent;
-
-				this.Controls.Add(maskedTextBox);
-				this.Controls.Add(dropDownButton);
-
-				dropDownButton.Click += DropDownButton_Click;
-				maskedTextBox.Leave += MaskedTextBox_Leave;
-				maskedTextBox.KeyDown += MaskedTextBox_KeyDown;
-
-				UpdateText();
-			}
-
-			// ✅ Календарь
-			private void DropDownButton_Click(object sender, EventArgs e)
-			{
-				ApplyTextToValue();
-
-				if (popupForm != null)
-				{
-					popupForm.Close();
-					return;
-				}
-
-				calendar = new MonthCalendar
-				{
-					MaxSelectionCount = 1,
-					SelectionStart = Value,
-					MinDate = MinDate,
-					MaxDate = MaxDate
-				};
-
-				calendar.DateSelected += Calendar_DateSelected;
-
-				popupForm = new Form
-				{
-					FormBorderStyle = FormBorderStyle.None,
-					ShowInTaskbar = false,
-					StartPosition = FormStartPosition.Manual,
-					BackColor = Color.White,
-					Size = calendar.Size
-				};
-
-				popupForm.Deactivate += (s, ea) => ClosePopup();
-				popupForm.FormClosed += (s, ea) => popupForm = null;
-				popupForm.Controls.Add(calendar);
-
-				var location = this.Parent.PointToScreen(new Point(this.Left, this.Bottom));
-				popupForm.Location = location;
-				popupForm.Show();
-			}
-
-			private void Calendar_DateSelected(object sender, DateRangeEventArgs e)
-			{
-				Value = e.Start;
-				ClosePopup();
-			}
-
-			private void ClosePopup()
-			{
-				if (popupForm != null)
-				{
-					popupForm.Close();
-					popupForm = null;
-				}
-			}
-
-			// ✅ Применение текста из MaskedTextBox
-			private void ApplyTextToValue()
-			{
-				if (DateTime.TryParseExact(maskedTextBox.Text, DateFormat, CultureInfo.InvariantCulture,
-						DateTimeStyles.None, out DateTime dt))
-				{
-					Value = dt;
-				}
-				else
-				{
-					UpdateText();
-				}
-			}
-
-			private void MaskedTextBox_Leave(object sender, EventArgs e)
-			{
-				ApplyTextToValue();
-			}
-
-			private void MaskedTextBox_KeyDown(object sender, KeyEventArgs e)
-			{
-				if (e.KeyCode == Keys.Enter)
-				{
-					ApplyTextToValue();
-					e.Handled = e.SuppressKeyPress = true;
-				}
-				else if (e.KeyCode == Keys.Escape)
-				{
-					UpdateText();
-					e.Handled = e.SuppressKeyPress = true;
-				}
-			}
-
-			private void UpdateText()
-			{
-				
-
-
-				maskedTextBox.Text = Value.ToString(DateFormat);
-				
-			}
-
-			protected virtual void OnValueChanged(EventArgs e)
-			{
-				ValueChanged?.Invoke(this, e);
-			}
-		}
-
-////..-----------------------
-	public override string ToString()
-		{
-			return Value.ToString(_format) ?? "";
-		}
-	}
-
-	public class ListBoxItem : MultiTypeTableItem
+            protected override void OnPaint(PaintEventArgs e)
+            {
+                base.OnPaint(e);
+                // Гарантированное удаление границ
+                e.Graphics.FillRectangle(new SolidBrush(_backColor), ClientRectangle);
+            }
+        }
+        public override string ToString()
+        {
+            return Value.ToString(_format) ?? "";
+        }
+    }
+    
+    
+    
+    
+    public class ListBoxItem : MultiTypeTableItem
 	{
 		private readonly string[] _items;
 		private readonly string _defValue;
